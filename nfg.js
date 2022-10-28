@@ -4,15 +4,14 @@ export async function main(ns) {
 	ns.disableLog("sleep");
 	ns.disableLog("singularity.purchaseAugmentation");
 	ns.run("startup.js");
-	//	ns.run("dev.js");
+	ns.run("dev.js");
 	ns.run("gearup.js");
 	ns.run("lube.js", 1, "joesguns");
-	let buffer = 2000;
+	let buffer = 1000;
 	ns.tail();
 	let avAug = getAvailableAugs(ns, debug);
 	let runs = 0;
 	let installed = ns.singularity.getOwnedAugmentations(true).length - ns.singularity.getOwnedAugmentations().length;
-	let factionNum = ns.getPlayer().factions.length;
 	let delay = 600000;
 	const cycles = 1000;
 	while (delay > 0) {
@@ -20,44 +19,31 @@ export async function main(ns) {
 		ns.print(new Date(delay).toISOString().slice(11, 19));
 		await ns.sleep(cycles);
 		delay -= cycles;
-	}
-	while (true) {
-		if (debug) { ns.print(avAug); }
-		let invites = ns.singularity.checkFactionInvitations() ?? 0;
-		if (invites.length > 0) {
-			let joined = 0;
-			for (let i = 0; i < invites.length; i++) {
-				let dontJoin = ["Aevum", "Chongqing", "Ishima", "New Tokyo", "Sector-12", "Volhaven"]
-				if (dontJoin.includes(invites[i])) {
-					continue;
-				}
-				ns.singularity.joinFaction(invites[i]);
-				joined += 1;
-				runs = 0;
-			}
-			if (joined > 0) {
-				avAug = getAvailableAugs(ns, debug);
-			}
-			factionNum = ns.getPlayer().factions.length;
-		}
-		if (factionNum < ns.getPlayer().factions.length) {
+		if (joinFactions(ns, debug) > 0) {
 			avAug = getAvailableAugs(ns, debug);
 		}
+	}
+	delay = 300000;
+	while (true) {
+		ns.clearLog();
+		ns.print(new Date(delay).toISOString().slice(11, 19), " Installed: ", installed);
+		if (debug) { ns.print(avAug); }
 		for (let i = 0; i < avAug.length; i++) {
 			//ns.print(avAug[i] + "[" + i + "]");
 			if (avAug[i].cost <= ns.getPlayer().money) {
 				if (ns.singularity.purchaseAugmentation(avAug[i].faction, avAug[i].name)) {
 					installed = ns.singularity.getOwnedAugmentations(true).length - ns.singularity.getOwnedAugmentations().length;
-					runs = 0;
+					delay = 300000;
 				}
 			}
 		}
-		runs = runs + 1;
-		ns.clearLog();
+		if (joinFactions(ns, debug) > 0) {
+			avAug = getAvailableAugs(ns, debug);
+			delay = 300000;
+		}
 		avAug = getAvailableAugs(ns, debug);
-		ns.print(runs, "/150 runs Installed: ", installed);
 		await ns.sleep(buffer);
-		if (avAug[0].cost > ns.getPlayer().money && runs >= 150 && installed > 0) {
+		if (avAug[0].cost > ns.getPlayer().money && delay < 0 && installed > 0) {
 			while (ns.singularity.upgradeHomeRam()) {
 				await ns.sleep(buffer)
 			}
@@ -66,7 +52,7 @@ export async function main(ns) {
 			}
 			ns.singularity.installAugmentations("nfg.js");
 		}
-
+		delay -= 1000;
 	}
 }
 
@@ -95,4 +81,26 @@ function getAvailableAugs(ns, debug) {
 	avAug2.sort((a, b) => b.cost - a.cost);
 	if (debug) { ns.print(avAug2); }
 	return avAug2;
+}
+
+/** @param {NS} ns */
+function joinFactions(ns, debug) {
+	let invites = ns.singularity.checkFactionInvitations();
+	let joined = 0;
+	if (invites.length > 0) {
+		let curFactions = ns.getPlayer().factions;
+		let dontJoin = ["Aevum", "Chongqing", "Ishima", "New Tokyo", "Sector-12", "Volhaven"];
+		const intersection = curFactions.filter(element => dontJoin.includes(element));
+		if (intersection.length > 0) {
+			dontJoin = [];
+		}
+		for (let i = 0; i < invites.length; i++) {
+			if (dontJoin.includes(invites[i])) {
+				continue;
+			}
+			ns.singularity.joinFaction(invites[i]);
+			joined += 1;
+		}
+	}
+	return joined;
 }
