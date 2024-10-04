@@ -14,6 +14,6 @@ export async function findFreeRam(ns, neededRAM) {
 	}
 	const maxRam = ns.getServerMaxRam("home");
 	const ramUsed = ns.getServerUsedRam("home");
-	if (neededRAM <= maxRam - ramUsed) { return "home" }
-	return "unavailable";
+	if (neededRAM <= maxRam - ramUsed) { return 'home' }
+	return 'none';
 }
