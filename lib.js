@@ -3,7 +3,7 @@
 /** @returns {string} - Name of host with required free RAM or 'none' if none available. */
 export async function findFreeRam(ns, neededRAM) {
 	const hosts = ns.read('hostsRAM.txt').split(',');
-	for (let i = hosts.length, j = 0; i > j; i--) {
+	for (let i = hosts.length, j = 0; i >= j; i--) {
 		const maxRam = ns.getServerMaxRam(hosts[i]);
 		const ramUsed = ns.getServerUsedRam(hosts[i]);
 		if (ns.hasRootAccess(hosts[i]) === true) {
