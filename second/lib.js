@@ -68,8 +68,10 @@ export function getServerAvailRam(ns, server, reserved = 0) {
  * all servers with admin access that have max RAM (GB) greater than 0.
  */
 export function getRootedServersWithRam(ns) {
+  ns.disableLog('getServerMaxRam');
   const hosts = ns.read('hostNames.txt').split(',');
-  const withRam = [{ 'name': 'home', 'maxRam': ns.getServerMaxRam('home') - homeReservedRam(ns) }];
+  const homeServer = { 'name': 'home', 'maxRam': ns.getServerMaxRam('home') - homeReservedRam(ns) };
+  const withRam = [];
   for (let i = 1, j = hosts.length; i < j; i++) {
     if (!ns.hasRootAccess(hosts[i])) {
       continue;
@@ -79,8 +81,11 @@ export function getRootedServersWithRam(ns) {
       withRam.push({ "name": hosts[i], "maxRam": serverMaxRam });
     }
   }
+  //const sortByMaxRam2 = withRam.sort((a, b) => a.maxRam - b.maxRam);
   const sortByMaxRam = withRam.sort((a, b) => b.maxRam - a.maxRam);
+  sortByMaxRam.unshift(homeServer);
   ns.write('hostsRam.txt', JSON.stringify(sortByMaxRam), 'w');
+  //ns.write('hostsRam2.txt', JSON.stringify(sortByMaxRam2), 'w');
   return sortByMaxRam;
 }
 
@@ -111,14 +116,28 @@ export function pwn(ns, server) {
  * @returns {number} - True or false if server has root access.
  */
 export function homeReservedRam(ns) {
-  let homeMaxRAM = ns.getServerMaxRam('home');
-  let reserved = Math.ceil(homeMaxRAM * 0.5);
-  if (homeMaxRAM * 0.05 < 4) {
+  const homeMaxRAM = ns.getServerMaxRam('home');
+  const reservedPercent = Math.ceil(homeMaxRAM * 0.05);
+  let reserved = 0;
+  if (homeMaxRAM * reservedPercent < 4) {
     reserved = 4;
-  } else if (homeMaxRAM * 0.05 > 32) {
+  } else if (homeMaxRAM * reservedPercent > 32) {
     reserved = 32;
   }
   /*ns.print("homeMaxRam: " + homeMaxRAM);
   ns.print("reserved: " + reserved); */
   return reserved;
+}
+
+/**
+ * Copies specified file across the network from 'home' to all servers that are rooted with
+ * max RAM greater than 0.
+ * @param {NS} ns
+ * @param {string | string[]} files - file name or array of file names to distribute from 'home'.
+ */
+export function distributeFiles(ns, files) {
+  const hosts = JSON.parse(ns.read('hostsRam.txt')); //Array of objects with {'name':,'maxRam':}
+  for (let i = 1, j = hosts.length; i < j; i++) {
+    ns.scp(files, hosts[i].name, 'home');
+  }
 }
