@@ -1,4 +1,4 @@
-import { pwn, getRootedServersWithRam } from 'lib.js';
+import { pwn, getRootedServersWithRam, distributeFiles } from 'lib.js';
 
 /** @param {NS} ns */
 export async function main(ns) {
@@ -27,7 +27,14 @@ export async function main(ns) {
   getRootedServersWithRam(ns);
   const sortedServerObjs = serverObjs.sort((a, b) => a.numOpenPortsRequired - b.numOpenPortsRequired);
   for (let i = 0, j = sortedServerObjs.length; i < j; i++) {
+    let runOnce = true;
     while (!pwn(ns, sortedServerObjs[i].hostname)) {
+      const files = 'hostNames.txt';
+      if (runOnce) {
+        getRootedServersWithRam(ns);
+        distributeFiles(ns, files);
+        runOnce = false;
+      }
       await ns.sleep(10000);
     }
   }
