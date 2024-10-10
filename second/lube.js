@@ -1,4 +1,4 @@
-import { getServerAvailRam } from 'lib.js';
+import { getServerAvailRam, findAvailRam } from 'lib.js';
 
 /** @param {NS} ns */
 export async function main(ns) {
@@ -10,21 +10,23 @@ export async function main(ns) {
   const maxCash = ns.getServerMaxMoney(target);
   let curCash = ns.getServerMoneyAvailable(target);
   const self = ns.getRunningScript().server;
-  let reserved = 0;
   while (minSec < curSec || curCash < maxCash || forever) {
     curSec = ns.getServerSecurityLevel(target);
     curCash = ns.getServerMoneyAvailable(target);
-    let threads = Math.floor(getServerAvailRam(ns, self, reserved) / ramCost);
-    if (threads === 0) {
-      await ns.sleep(10000);
-      continue;
-    }
+    const hosts = ns.read('hostsRam.txt').split(',');
+    //let threads = Math.floor(getServerAvailRam(ns, self, reserved) / ramCost);
     if (minSec < curSec) {
-      ns.exec('weaken.js', self, threads, target, true);
-      await ns.asleep(ns.getWeakenTime(target));
+      for (let i = 0, j = hosts.length; i < j; i++) {
+        //target, opTime, endTime, debug
+        ns.exec('weaken.js', findAvailRam(ns, ramCost), 1, target, 0, 0, true);
+        await ns.sleep(50);
+      }
     } else if (curCash < maxCash) {
-      ns.exec('grow.js', self, threads, target, true);
-      await ns.asleep(ns.getGrowTime(target));
+      for (let i = 0, j = hosts.length; i < j; i++) {
+        //target, opTime, endTime, debug
+        ns.exec('grow.js', findAvailRam(ns, ramCost), 1, target, 0, 0, true);
+        await ns.asleep(50);
+      }
     }
     await ns.sleep(50);
   }
