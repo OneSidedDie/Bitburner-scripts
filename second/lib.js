@@ -11,7 +11,7 @@
  */
 export function findAvailRam(ns, neededRam, reserved = 0) {
   const hosts = JSON.parse(ns.read('hostsRam.txt').split(','));
-  let result = 'none';
+  let result = 'n00dles';
   //ns.print(hosts);
   //ns.print(hosts[hosts.length - 1]);
   for (let i = hosts.length - 1, j = 0; i >= j; i--) {
@@ -140,4 +140,12 @@ export function distributeFiles(ns, files) {
   for (let i = 1, j = hosts.length; i < j; i++) {
     ns.scp(files, hosts[i].name, 'home');
   }
+}
+
+/**
+ * 
+ */
+export function extraTimeNeeded(ns, server, buffer) {
+  const startTime = Date.now();
+  const endTime = Date.now() + ns.getWeakenTime() + (buffer * 2);
 }
