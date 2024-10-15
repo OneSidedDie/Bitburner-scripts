@@ -9,17 +9,21 @@
  * @returns {string} - Name of host with required free RAM or 'none' if none available.
  * @description 
  */
-export function findAvailRam(ns, neededRam, reserved = 0) {
+export function findAvailRam(ns, neededRam, reserved = 0, debug = false) {
   const hosts = JSON.parse(ns.read('hostsRam.txt').split(','));
-  let result = 'n00dles';
+  let result = 'none';
   //ns.print(hosts);
   //ns.print(hosts[hosts.length - 1]);
   for (let i = hosts.length - 1, j = 0; i >= j; i--) {
-    const availRam = getServerAvailRam(ns, hosts[i].name, reserved);
-    if (neededRam < availRam) {
+    const availRam = getServerAvailRam(ns, hosts[i].name, reserved, debug);
+    if (neededRam <= availRam) {
       result = hosts[i].name;
       break;
     }
+  }
+
+  if (result === 'none') {
+    throw new Error(`findAvailRam(ns,${neededRam},${reserved},${debug}): Found no servers with ${neededRam} (GB) available RAM.`);
   }
   return result;
 }
@@ -36,7 +40,7 @@ export function findAvailRam(ns, neededRam, reserved = 0) {
 export function getAllAvailableRam(ns, hosts, reserved = 0) {
   const ramList = [];
   for (let i = 0, j = hosts.length; i < j; i++) {
-    ramList.push(availRam = getServerAvailRam(ns, hosts[i], reserved));
+    ramList.push(availRam = getServerAvailRam(ns, hosts[i], reserved, debug));
   }
   return ramList;
 }
@@ -45,14 +49,15 @@ export function getAllAvailableRam(ns, hosts, reserved = 0) {
  * Return the amount of available RAM (GB) on the specified server.
  * @param {NS} ns 
  * @param {string} server - Name of server.
- * @param {number} reserved - Amount of RAM (GB) to reserve on home.
+ * @param {number} reserved - Amount of RAM (GB) to reserve.
  * @returns {number} - The amount of available RAM (GB) on the specified server.
  */
-export function getServerAvailRam(ns, server, reserved = 0) {
+export function getServerAvailRam(ns, server, reserved = 0, debug = false) {
+  if (!debug) { ns.disableLog('ALL'); }
   let maxRam = ns.getServerMaxRam(server);
   const usedRam = ns.getServerUsedRam(server);
   if (server === 'home') {
-    maxRam -= homeReservedRam(ns);
+    maxRam -= homeReservedRam(ns, debug);
   } else {
     maxRam -= reserved;
   }
@@ -67,8 +72,8 @@ export function getServerAvailRam(ns, server, reserved = 0) {
  * @returns {object[]} withRam - Returns an array of strings with the names of
  * all servers with admin access that have max RAM (GB) greater than 0.
  */
-export function getRootedServersWithRam(ns) {
-  ns.disableLog('getServerMaxRam');
+export function getRootedServersWithRam(ns, debug = false) {
+  if (!debug) { ns.disableLog('ALL'); }
   const hosts = ns.read('hostNames.txt').split(',');
   const homeServer = { 'name': 'home', 'maxRam': ns.getServerMaxRam('home') - homeReservedRam(ns) };
   const withRam = [];
@@ -85,7 +90,6 @@ export function getRootedServersWithRam(ns) {
   const sortByMaxRam = withRam.sort((a, b) => b.maxRam - a.maxRam);
   sortByMaxRam.unshift(homeServer);
   ns.write('hostsRam.txt', JSON.stringify(sortByMaxRam), 'w');
-  //ns.write('hostsRam2.txt', JSON.stringify(sortByMaxRam2), 'w');
   return sortByMaxRam;
 }
 
@@ -98,14 +102,14 @@ export function getRootedServersWithRam(ns) {
  */
 export function pwn(ns, server) {
   let openPorts = 5;
+  const files = ['weaken.js', 'grow.js', 'hack.js'];
   try { ns.brutessh(server) } catch (error) { openPorts -= 1 }
   try { ns.httpworm(server) } catch (error) { openPorts -= 1 }
   try { ns.ftpcrack(server) } catch (error) { openPorts -= 1 }
   try { ns.sqlinject(server) } catch (error) { openPorts -= 1 }
   try { ns.relaysmtp(server) } catch (error) { openPorts -= 1 }
   try { ns.nuke(server) } catch (error) { return false }
-  ns.scp(ns.ls('home', '.js'), server, 'home');
-  ns.scp(ns.ls('home', '.txt'), server, 'home');
+  ns.scp(files, server, 'home');
   //ns.exec('lube.js', server, 1, server);
   return true;
 }
@@ -115,17 +119,15 @@ export function pwn(ns, server) {
  * @param {NS} ns
  * @returns {number} - True or false if server has root access.
  */
-export function homeReservedRam(ns) {
+export function homeReservedRam(ns, debug = false) {
+  ns.disableLog('ALL');
   const homeMaxRAM = ns.getServerMaxRam('home');
-  const reservedPercent = Math.ceil(homeMaxRAM * 0.05);
-  let reserved = 0;
-  if (homeMaxRAM * reservedPercent < 4) {
+  let reserved = Math.floor(homeMaxRAM * 0.05);
+  if (reserved < 4) {
     reserved = 4;
-  } else if (homeMaxRAM * reservedPercent > 32) {
+  } else if (reserved > 32) {
     reserved = 32;
   }
-  /*ns.print("homeMaxRam: " + homeMaxRAM);
-  ns.print("reserved: " + reserved); */
   return reserved;
 }
 
