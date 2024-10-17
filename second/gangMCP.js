@@ -1,72 +1,66 @@
 /** @param {NS} ns */
 export async function main(ns) {
-  let gangCreated = false;
-  try {
-    ns.rm('/gang/gangList.txt', 'home');
-    ns.rm('/gang/equipmentInfo.txt', 'home');
-    gangCreated = ns.gang.inGang();
-  }
-  catch {
-    ns.tprint('You do not have access to gangs in this bitnode.');
-    ns.exit();
-  }
-  while (!gangCreated) {
-    gangCreated = ns.gang.createGang('Slum Snakes');
-    await ns.sleep(10000);
-  }
-
-  const gangList = ns.gang.getMemberNames();
-  const equipmentList = getGangEquipment(ns);
-  const taskList = getGangTasks(ns);
-
-  ns.write('/gang/gangList.txt', JSON.stringify(gangList), 'w');
-  ns.write('/gang/equipmentList.txt', JSON.stringify(equipmentList), 'w');
-  ns.write('/gang/taskList.txt', JSON.stringify(taskList), 'w');
-  ns.spawn('/gang/gangMCU.js', { 'spawnDelay': 1 });
-}
-
-class GangEquipment {
-  constructor(name, cost, stats, type) {
-    this.name = name;
-    this.cost = cost;
-    this.stats = stats;
-    this.type = type;
+  ns.tail();
+  const namePool = ns.read('/gang/gangNamePool.txt').split(',');
+  let gangList = JSON.parse(ns.read('/gang/gangList.txt'));
+  const equipmentList = ns.read('/gang/gangEquipmentList.txt').split(',');
+  const taskList = ns.read('/gang/tastList.txt').split(',');
+  while (true) {
+    if (ns.gang.canRecruitMember()) {
+      gangList = recruit(ns, gangList, namePool);
+    }
+    ascend(ns, gangList);
+    await ns.gang.nextUpdate();
   }
 }
-
-class GangTask {
-  constructor(name, stats) {
-    this.name = name;
-    this.stats = stats;
+/**
+ * @param {NS} ns
+ */
+function recruit(ns, gangList, namePool) {
+  let roll = die(namePool.length);
+  let nameChoice = namePool[roll];
+  while (gangList.includes(nameChoice)) {
+    roll = die[namePool.length];
+    nameChoice = namePool[roll];
   }
+  if (ns.gang.recruitMember(nameChoice)) {
+    gangList.push(nameChoice);
+    ns.gang.setMemberTask(nameChoice, 'Train Combat');
+    ns.write('/gang/gangList.txt', JSON.stringify(gangList), 'w');
+  }
+  return gangList;
 }
 
 /**
  * @param {NS} ns
  */
-export function getGangEquipment(ns) {
-  const equipmentList = [];
-  const equipmentNames = ns.gang.getEquipmentNames();
-  for (const equipment of equipmentNames) {
-    const equipmentCost = ns.gang.getEquipmentCost(equipment);
-    const equipmentStats = ns.gang.getEquipmentStats(equipment);
-    const equipmentType = ns.gang.getEquipmentType(equipment);
-    const equipmentEntry = new GangEquipment(equipment, equipmentCost, equipmentStats, equipmentType);
-    equipmentList.push(equipmentEntry);
-  }
-  return equipmentList;
+function buyEquipment(ns) {
+
 }
 
-/**
+/** 1.66 - 0.62 / Math.exp((2 / ns.gang.getMemberInformation(member).str_asc_mult) ** 2.24)
  * @param {NS} ns
  */
-export function getGangTasks(ns) {
-  const gangTasks = [];
-  const taskNames = ns.gang.getTaskNames();
-  for (const task of taskNames) {
-    const taskStats = ns.gang.getTaskStats(task);
-    const taskEntry = new GangTask(task, taskStats);
-    gangTasks.push(taskEntry);
+function ascend(ns, gangList) {
+  for (const member of gangList) {
+    const stats = ns.gang.getMemberInformation(member);
+    if (stats.task === 'Terrorism') {
+      continue;
+    }
+    let result;
+    try { result = ns.gang.getAscensionResult(member).str } catch { continue };
+    if (result > 1.66 - 0.62 / Math.exp((2 / stats.str_asc_mult) ** 2.24)) {
+      ns.gang.ascendMember(member);
+      ns.gang.setMemberTask(member, 'Train Combat');
+    }
   }
-  return gangTasks;
+}
+
+/** Random number between and including 0 through max.
+ * @param {number} max - Maximum number to roll.
+ * @returns {number} result - Number chosen from 0 to max.
+ */
+function die(max) {
+  const result = Math.floor(Math.random() * max);
+  return result;
 }
