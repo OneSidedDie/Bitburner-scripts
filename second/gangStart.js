@@ -14,12 +14,12 @@ export async function main(ns) {
     gangCreated = ns.gang.createGang('Slum Snakes');
     await ns.sleep(10000);
   }
-
-  const gangList = ns.gang.getMemberNames();
+  ns.tail();
+  const gangNames = ns.gang.getMemberNames();
   const equipmentList = getGangEquipment(ns);
   const taskList = getGangTasks(ns);
-
-  ns.write('/gang/gangList.txt', JSON.stringify(gangList), 'w');
+  ns.print(taskList);
+  ns.write('/gang/gangNames.txt', JSON.stringify(gangNames), 'w');
   ns.write('/gang/equipmentList.txt', JSON.stringify(equipmentList), 'w');
   ns.write('/gang/taskList.txt', JSON.stringify(taskList), 'w');
   ns.spawn('/gang/gangMCP.js', { 'spawnDelay': 1 });
@@ -31,13 +31,6 @@ class GangEquipment {
     this.cost = cost;
     this.stats = stats;
     this.type = type;
-  }
-}
-
-class GangTask {
-  constructor(name, stats) {
-    this.name = name;
-    this.stats = stats;
   }
 }
 
@@ -65,8 +58,8 @@ export function getGangTasks(ns) {
   const taskNames = ns.gang.getTaskNames();
   for (const task of taskNames) {
     const taskStats = ns.gang.getTaskStats(task);
-    const taskEntry = new GangTask(task, taskStats);
-    gangTasks.push(taskEntry);
+    //const taskEntry = { 'name': task, 'stats': taskStats };
+    gangTasks.push(taskStats);
   }
   return gangTasks;
 }
