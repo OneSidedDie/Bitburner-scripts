@@ -14,16 +14,16 @@ export function findAvailRam(ns, neededRam, reserved = 0, debug = false) {
   let result = 'none';
   //ns.print(hosts);
   //ns.print(hosts[hosts.length - 1]);
-  for (let i = hosts.length - 1, j = 0; i >= j; i--) {
-    const availRam = getServerAvailRam(ns, hosts[i].name, reserved, debug);
-    if (neededRam <= availRam) {
-      result = hosts[i].name;
+  for (const host of hosts) {
+    const availRam = getServerAvailRam(ns, host.name, reserved, debug);
+    if (neededRam <= availRam && !host.name.includes('hacknet')) {
+      result = host.name;
       break;
     }
   }
 
   if (result === 'none') {
-    throw new Error(`findAvailRam(ns,${neededRam},${reserved},${debug}): Found no servers with ${neededRam} (GB) available RAM.`);
+    throw new Error(`findAvailRam(ns,${neededRam},${reserved},${debug}): Found no servers with ${ns.formatRam(neededRam)} available RAM.`);
   }
   return result;
 }
@@ -77,18 +77,18 @@ export function getRootedServersWithRam(ns, debug = false) {
   const hosts = ns.read('hostNames.txt').split(',');
   const homeServer = { 'name': 'home', 'maxRam': ns.getServerMaxRam('home') - homeReservedRam(ns) };
   const withRam = [];
-  for (let i = 1, j = hosts.length; i < j; i++) {
-    if (!ns.hasRootAccess(hosts[i])) {
+  for (const host of hosts) {
+    if (!ns.hasRootAccess(host) || host === 'home') {
       continue;
     }
-    const serverMaxRam = ns.getServerMaxRam(hosts[i]);
+    const serverMaxRam = ns.getServerMaxRam(host);
     if (serverMaxRam > 0) {
-      withRam.push({ "name": hosts[i], "maxRam": serverMaxRam });
+      withRam.push({ "name": host, "maxRam": serverMaxRam });
     }
   }
   //const sortByMaxRam2 = withRam.sort((a, b) => a.maxRam - b.maxRam);
-  const sortByMaxRam = withRam.sort((a, b) => b.maxRam - a.maxRam);
-  sortByMaxRam.unshift(homeServer);
+  const sortByMaxRam = withRam.sort((a, b) => a.maxRam - b.maxRam);
+  sortByMaxRam.push(homeServer);
   ns.write('hostsRam.txt', JSON.stringify(sortByMaxRam), 'w');
   return sortByMaxRam;
 }
@@ -100,16 +100,17 @@ export function getRootedServersWithRam(ns, debug = false) {
  * @param {string} server - Server being pwn'd.
  * @returns {boolean} - True or false if server has root access.
  */
-export function pwn(ns, server) {
+export function pwn(ns, server, files = []) {
   let openPorts = 5;
-  const files = ['weaken.js', 'grow.js', 'hack.js'];
-  try { ns.brutessh(server) } catch (error) { openPorts -= 1 }
-  try { ns.httpworm(server) } catch (error) { openPorts -= 1 }
-  try { ns.ftpcrack(server) } catch (error) { openPorts -= 1 }
-  try { ns.sqlinject(server) } catch (error) { openPorts -= 1 }
-  try { ns.relaysmtp(server) } catch (error) { openPorts -= 1 }
-  try { ns.nuke(server) } catch (error) { return false }
-  ns.scp(files, server, 'home');
+  try { ns.brutessh(server) } catch { openPorts -= 1 }
+  try { ns.httpworm(server) } catch { openPorts -= 1 }
+  try { ns.ftpcrack(server) } catch { openPorts -= 1 }
+  try { ns.sqlinject(server) } catch { openPorts -= 1 }
+  try { ns.relaysmtp(server) } catch { openPorts -= 1 }
+  try { ns.nuke(server) } catch { return false }
+  if (files.length > 0) {
+    ns.scp(files, server, 'home');
+  }
   //ns.exec('lube.js', server, 1, server);
   return true;
 }
@@ -122,11 +123,14 @@ export function pwn(ns, server) {
 export function homeReservedRam(ns, debug = false) {
   ns.disableLog('ALL');
   const homeMaxRAM = ns.getServerMaxRam('home');
-  let reserved = Math.floor(homeMaxRAM * 0.05);
-  if (reserved < 4) {
-    reserved = 4;
-  } else if (reserved > 32) {
+  let reserved = Math.floor(homeMaxRAM * 0.1);
+  if (reserved < 32) {
     reserved = 32;
+  } else if (reserved > 64) {
+    reserved = 64;
+  }
+  if (debug) {
+    ns.print(`Reserved ${ns.formatRam(reserved)} of RAM on home.`);
   }
   return reserved;
 }
@@ -138,9 +142,9 @@ export function homeReservedRam(ns, debug = false) {
  * @param {string | string[]} files - file name or array of file names to distribute from 'home'.
  */
 export function distributeFiles(ns, files) {
-  const hosts = JSON.parse(ns.read('hostsRam.txt')); //Array of objects with {'name':,'maxRam':}
-  for (let i = 1, j = hosts.length; i < j; i++) {
-    ns.scp(files, hosts[i].name, 'home');
+  const hosts = ns.read('hostNames.txt').split(','); //Array of objects with {'name':,'maxRam':}
+  for (const host of hosts) {
+    ns.scp(files, host, 'home');
   }
 }
 
@@ -150,4 +154,54 @@ export function distributeFiles(ns, files) {
 export function extraTimeNeeded(ns, server, buffer) {
   const startTime = Date.now();
   const endTime = Date.now() + ns.getWeakenTime() + (buffer * 2);
+}
+
+export function goto(ns, destination) {
+
+  const endpoints = JSON.parse(ns.read("pathHome.txt"));
+
+  try {
+    ns.singularity.connect("home");
+  } catch {
+    ns.tprint('You do not have access to singularity functions.');
+    ns.exit();
+  }
+
+  if (endpoints.length === 0) {
+    ns.tprint("No host data. Please run map.js");
+  }
+
+  const mapIndex = endpoints.findIndex(item => { return item.includes(destination) });
+  const map = endpoints[mapIndex];
+  if (map === -1 || mapIndex === -1) {
+    ns.tprint("Host not found.");
+    ns.exit();
+  }
+  else {
+    for (let i = map.length - 1; i < map.length; i--) {
+      ns.singularity.connect(map[i]);
+      if (map[i] == destination) {
+        return true;
+      }
+    }
+  }
+}
+
+/** @param {NS} ns */
+export function calcRatios(ns, hThreads, player, server) {
+
+  const bnMults = ns.getBitNodeMultipliers();// JSON.parse(ns.read('bitNodeMultipliers.txt'));
+  const wHeal = 0.5 * bnMults.ServerWeakenRate;
+  let gThreads = 0;
+  let wThreadsH = 0;
+  let wThreadsG = 0;
+  const hDamage = hThreads * ns.formulas.hacking.hackPercent(server, player);
+
+  server.moneyAvailable = (1 - hDamage) * server.moneyMax;
+  gThreads = Math.ceil(ns.formulas.hacking.growThreads(server, player, server.moneyMax));
+  wThreadsH = Math.ceil((0.2 * hThreads) / wHeal);
+  wThreadsG = Math.ceil((0.4 * gThreads) / wHeal);
+
+
+  return { 'gThreads': gThreads, 'wThreadsH': wThreadsH, 'wThreadsG': wThreadsG };
 }
