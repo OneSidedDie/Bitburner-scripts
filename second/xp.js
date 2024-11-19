@@ -1,12 +1,18 @@
+import { getServerAvailRam } from 'lib.js';
+
 /** @param {NS} ns */
 export async function main(ns) {
   const ramCost = 1.75;
   while (true) {
-    let maxRAM = ns.getServerMaxRam('home');
-    let usedRAM = ns.getServerUsedRam('home');
-    let availRAM = maxRAM - usedRAM;
-    let threadCount = Math.floor(availRAM / ramCost);
-    ns.run('grow.js', threadCount, 'joesguns');
-    await ns.asleep(ns.getGrowTime('joesguns') + 200);
+    const hosts = JSON.parse(ns.read('hostsRam.txt'));
+    for (const host of hosts) {
+      const availRam = getServerAvailRam(ns, host.name);
+      const threadCount = Math.floor(availRam / ramCost);
+      if (threadCount <= 0 || host.name.includes('hacknet')) { //
+        continue;
+      }
+      ns.exec('grow.js', host.name, threadCount, 'joesguns');
+    }
+    await ns.asleep(ns.getGrowTime('joesguns') + 50);
   }
 }
