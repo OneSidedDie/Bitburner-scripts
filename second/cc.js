@@ -11,6 +11,13 @@ export async function main(ns) {
     let result;
     let answer;
     for (const cct of contracts) {
+      if (!allCC.includes(cct.type)) {
+        ns.tprint('New contract type found! ', cct.type, ' ', cct.filename, ' ', cct.host);
+        ns.tprint('You should probably update your cc.js script.');
+        ns.exit();
+      } else if (!solved.includes(cct.type)) {
+        continue;
+      }
       switch (cct.type) {
         case "Find Largest Prime Factor":
           answer = findLargestPrimeFactor(cct.data);
@@ -82,10 +89,6 @@ export async function main(ns) {
         case "Encryption II: Vigenère Cipher":
           answer = encryptionIIVigenèreCipher(cct.data);
           break;
-        default:
-          ns.tprint('New contract type found! ', cct.type, ' ', cct.filename, ' ', cct.host);
-          ns.tprint('You should probably update your cc.js script.');
-          ns.exit();
       }
 
       result = cct.submit(answer);
