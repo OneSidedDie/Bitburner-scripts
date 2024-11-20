@@ -2,7 +2,7 @@
 export async function main(ns) {
   ns.tail();
   ns.disableLog('sleep', 'disableLog');
-  const solved = ["Algorithmic Stock Trader III", "Unique Paths in a Grid II", "Unique Paths in a Grid I", "Compression I: RLE Compression", "Spiralize Matrix", "Algorithmic Stock Trader I", "Algorithmic Stock Trader II", "Merge Overlapping Intervals", "Array Jumping Game", , "Array Jumping Game II", "Encryption I: Caesar Cipher", "Subarray with Maximum Sum", "Total Ways to Sum", "Find Largest Prime Factor", "Minimum Path Sum in a Triangle", "Encryption II: Vigenère Cipher"];
+  const solved = ["Generate IP Addresses", "Algorithmic Stock Trader III", "Unique Paths in a Grid II", "Unique Paths in a Grid I", "Compression I: RLE Compression", "Spiralize Matrix", "Algorithmic Stock Trader I", "Algorithmic Stock Trader II", "Merge Overlapping Intervals", "Array Jumping Game", , "Array Jumping Game II", "Encryption I: Caesar Cipher", "Subarray with Maximum Sum", "Total Ways to Sum", "Find Largest Prime Factor", "Minimum Path Sum in a Triangle", "Encryption II: Vigenère Cipher"];
   const allCC = ["Find Largest Prime Factor", "Subarray with Maximum Sum", "Total Ways to Sum", "Total Ways to Sum II", "Spiralize Matrix", "Array Jumping Game", "Array Jumping Game II", "Merge Overlapping Intervals", "Generate IP Addresses", "Algorithmic Stock Trader I", "Algorithmic Stock Trader II", "Algorithmic Stock Trader III", "Algorithmic Stock Trader IV", "Minimum Path Sum in a Triangle", "Unique Paths in a Grid I", "Unique Paths in a Grid II", "Shortest Path in a Grid", "Sanitize Parentheses in Expression", "Find All Valid Math Expressions", "HammingCodes: Integer to Encoded Binary", "HammingCodes: Encoded Binary to Integer", "Proper 2-Coloring of a Graph", "Compression I: RLE Compression", "Compression II: LZ Decompression", "Compression III: LZ Compression", "Encryption I: Caesar Cipher", "Encryption II: Vigenère Cipher"];
   const hosts = ns.read('hostNames.txt').split(',');
   const nSolved = `${solved.length}/${allCC.length}`;
@@ -43,6 +43,7 @@ export async function main(ns) {
           answer = mergeOverlappingIntervals(cct.data);
           break;
         case "Generate IP Addresses":
+          answer = generateIPAddresses(cct.data);
           break;
         case "Algorithmic Stock Trader I":
           answer = algorithmicStockTraderI(cct.data);
@@ -583,6 +584,40 @@ function minimumPathSumInATriangle(data = []) {
     }
   }
   return mins[0];
+}
+
+
+function generateIPAddresses(data = "") {
+  const answers = [];
+
+  for (let first = 1; first <= 3; ++first) {
+    for (let second = 1; second <= 3; ++second) {
+      for (let third = 1; third <= 3; ++third) {
+        for (let fourth = 1; fourth <= 3; ++fourth) {
+          if (first + second + third + fourth === data.length) {
+            let ichi = data.substring(0, first);
+            let ni = data.substring(first, first + second);
+            let san = data.substring(first + second, first + second + third);
+            let yon = data.substring(first + second + third, first + second + third + fourth);
+            let possible = [ichi, ni, san, yon];
+            let addr = [];
+            for (let num of possible) {
+              if ((num !== '0' && num[0] === '0') || Number(num) > 255) {
+                break;
+              }
+              addr.push(num);
+            }
+            if (addr.length === 4) {
+
+              answers.push(addr.join('.'));
+
+            }
+          }
+        }
+      }
+    }
+  }
+  return answers;
 }
 
 
