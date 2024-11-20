@@ -2,8 +2,8 @@
 export async function main(ns) {
   ns.tail();
   ns.disableLog('sleep', 'disableLog');
-  const solved = ["Unique Paths in a Grid II", "Unique Paths in a Grid I", "Compression I: RLE Compression", "Spiralize Matrix", "Algorithmic Stock Trader I", "Algorithmic Stock Trader II", "Merge Overlapping Intervals", "Array Jumping Game", , "Array Jumping Game II", "Encryption I: Caesar Cipher", "Subarray with Maximum Sum", "Total Ways to Sum", "Find Largest Prime Factor", "Minimum Path Sum in a Triangle"];
-  const allCC =  ["Find Largest Prime Factor","Subarray with Maximum Sum","Total Ways to Sum","Total Ways to Sum II","Spiralize Matrix","Array Jumping Game","Array Jumping Game II","Merge Overlapping Intervals","Generate IP Addresses","Algorithmic Stock Trader I","Algorithmic Stock Trader II","Algorithmic Stock Trader III","Algorithmic Stock Trader IV","Minimum Path Sum in a Triangle","Unique Paths in a Grid I","Unique Paths in a Grid II","Shortest Path in a Grid","Sanitize Parentheses in Expression","Find All Valid Math Expressions","HammingCodes: Integer to Encoded Binary","HammingCodes: Encoded Binary to Integer","Proper 2-Coloring of a Graph","Compression I: RLE Compression","Compression II: LZ Decompression","Compression III: LZ Compression","Encryption I: Caesar Cipher","Encryption II: Vigenère Cipher"];
+  const solved = ["Algorithmic Stock Trader III", "Unique Paths in a Grid II", "Unique Paths in a Grid I", "Compression I: RLE Compression", "Spiralize Matrix", "Algorithmic Stock Trader I", "Algorithmic Stock Trader II", "Merge Overlapping Intervals", "Array Jumping Game", , "Array Jumping Game II", "Encryption I: Caesar Cipher", "Subarray with Maximum Sum", "Total Ways to Sum", "Find Largest Prime Factor", "Minimum Path Sum in a Triangle"];
+  const allCC = ["Find Largest Prime Factor", "Subarray with Maximum Sum", "Total Ways to Sum", "Total Ways to Sum II", "Spiralize Matrix", "Array Jumping Game", "Array Jumping Game II", "Merge Overlapping Intervals", "Generate IP Addresses", "Algorithmic Stock Trader I", "Algorithmic Stock Trader II", "Algorithmic Stock Trader III", "Algorithmic Stock Trader IV", "Minimum Path Sum in a Triangle", "Unique Paths in a Grid I", "Unique Paths in a Grid II", "Shortest Path in a Grid", "Sanitize Parentheses in Expression", "Find All Valid Math Expressions", "HammingCodes: Integer to Encoded Binary", "HammingCodes: Encoded Binary to Integer", "Proper 2-Coloring of a Graph", "Compression I: RLE Compression", "Compression II: LZ Decompression", "Compression III: LZ Compression", "Encryption I: Caesar Cipher", "Encryption II: Vigenère Cipher"];
   const hosts = ns.read('hostNames.txt').split(',');
   const nSolved = `${solved.length}/${allCC.length}`;
   while (true) {
@@ -11,9 +11,6 @@ export async function main(ns) {
     let result;
     let answer;
     for (const cct of contracts) {
-      if (!solved.includes(cct.type)) {
-        continue;
-      }
       switch (cct.type) {
         case "Find Largest Prime Factor":
           answer = findLargestPrimeFactor(cct.data);
@@ -47,6 +44,7 @@ export async function main(ns) {
           answer = algorithmicStockTraderII(cct.data);
           break;
         case "Algorithmic Stock Trader III":
+          answer = algorithmicStockTraderIII(cct.data);
           break;
         case "Algorithmic Stock Trader IV":
           break;
@@ -128,6 +126,47 @@ export function lookForWork(ns, hosts, contracts = []) {
 
   return contracts;
 }
+
+
+function algorithmicStockTraderIII(data) {
+  let largest1 = 0;
+  let largest2 = 0;
+  const allActions = [];
+
+  for (let i = 0, j = data.length - 1; i < j; ++i) {
+    allActions[i] = [];
+    const buy = data[i];
+    for (let k = i + 1, l = data.length; k < l; ++k) {
+      const sell = data[k];
+      const profit = sell - buy;
+      largest1 = Math.max(largest1, profit);
+      allActions[i].push(profit);
+    }
+  }
+
+
+  for (let i = 0, j = allActions.length - 2; i < j; ++i) {
+    let first = 0;
+    let second = 0;
+    let profit = 0;
+    for (let k = 0, l = allActions[i].length; k < l; ++k) {
+      first = allActions[i][k];
+      second = 0;
+      for (let m = k + i + 2, n = allActions.length; m < n; ++m) {
+        second = Math.max(second, ...allActions[m]);
+      }
+
+      profit = Number(first) + Number(second);
+      largest2 = Math.max(largest2, profit);
+
+    }
+
+  }
+
+  return Math.max(largest1, largest2);
+
+}
+
 
 function uniquePathsInAGridI(data) {
   const rows = data[0] - 1;
