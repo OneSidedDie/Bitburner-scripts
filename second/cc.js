@@ -2,7 +2,7 @@
 export async function main(ns) {
   ns.tail();
   ns.disableLog('sleep', 'disableLog');
-  const solved = ["Algorithmic Stock Trader III", "Unique Paths in a Grid II", "Unique Paths in a Grid I", "Compression I: RLE Compression", "Spiralize Matrix", "Algorithmic Stock Trader I", "Algorithmic Stock Trader II", "Merge Overlapping Intervals", "Array Jumping Game", , "Array Jumping Game II", "Encryption I: Caesar Cipher", "Subarray with Maximum Sum", "Total Ways to Sum", "Find Largest Prime Factor", "Minimum Path Sum in a Triangle"];
+  const solved = ["Algorithmic Stock Trader III", "Unique Paths in a Grid II", "Unique Paths in a Grid I", "Compression I: RLE Compression", "Spiralize Matrix", "Algorithmic Stock Trader I", "Algorithmic Stock Trader II", "Merge Overlapping Intervals", "Array Jumping Game", , "Array Jumping Game II", "Encryption I: Caesar Cipher", "Subarray with Maximum Sum", "Total Ways to Sum", "Find Largest Prime Factor", "Minimum Path Sum in a Triangle", "Encryption II: Vigenère Cipher"];
   const allCC = ["Find Largest Prime Factor", "Subarray with Maximum Sum", "Total Ways to Sum", "Total Ways to Sum II", "Spiralize Matrix", "Array Jumping Game", "Array Jumping Game II", "Merge Overlapping Intervals", "Generate IP Addresses", "Algorithmic Stock Trader I", "Algorithmic Stock Trader II", "Algorithmic Stock Trader III", "Algorithmic Stock Trader IV", "Minimum Path Sum in a Triangle", "Unique Paths in a Grid I", "Unique Paths in a Grid II", "Shortest Path in a Grid", "Sanitize Parentheses in Expression", "Find All Valid Math Expressions", "HammingCodes: Integer to Encoded Binary", "HammingCodes: Encoded Binary to Integer", "Proper 2-Coloring of a Graph", "Compression I: RLE Compression", "Compression II: LZ Decompression", "Compression III: LZ Compression", "Encryption I: Caesar Cipher", "Encryption II: Vigenère Cipher"];
   const hosts = ns.read('hostNames.txt').split(',');
   const nSolved = `${solved.length}/${allCC.length}`;
@@ -80,7 +80,7 @@ export async function main(ns) {
           answer = encryptionICaesarCipher(cct.data);
           break;
         case "Encryption II: Vigenère Cipher":
-          answer = encryptionIIVigenereCipher(cct.data);
+          answer = encryptionIIVigenèreCipher(cct.data);
           break;
         default:
           ns.tprint('New contract type found! ', cct.type, ' ', cct.filename, ' ', cct.host);
@@ -464,6 +464,26 @@ function encryptionICaesarCipher(data) {
 
 }
 
+
+function encryptionIIVigenèreCipher(data) {
+  const text = data[0].split('');
+  const key = data[1].split('');
+  let answer = '';
+
+  const code = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+
+  for (const [index, char] of text.entries()) {
+    const charV = code.indexOf(char);
+    const keyV = code.indexOf(key[index % key.length]);
+    const enc = code[(charV + keyV) % code.length];
+
+    answer = answer.concat(enc);
+
+  }
+
+  return String(answer);
+
+}
 
 function totalWaysToSum(data) {
   const n = data;
