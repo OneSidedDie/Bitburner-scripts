@@ -2,7 +2,7 @@
 export async function main(ns) {
   ns.tail();
   ns.disableLog('sleep', 'disableLog');
-  const solved = ["Generate IP Addresses", "Algorithmic Stock Trader III", "Unique Paths in a Grid II", "Unique Paths in a Grid I", "Compression I: RLE Compression", "Spiralize Matrix", "Algorithmic Stock Trader I", "Algorithmic Stock Trader II", "Merge Overlapping Intervals", "Array Jumping Game", , "Array Jumping Game II", "Encryption I: Caesar Cipher", "Subarray with Maximum Sum", "Total Ways to Sum", "Find Largest Prime Factor", "Minimum Path Sum in a Triangle", "Encryption II: Vigenère Cipher"];
+  const solved = ["Shortest Path in a Grid", "Generate IP Addresses", "Algorithmic Stock Trader III", "Unique Paths in a Grid II", "Unique Paths in a Grid I", "Compression I: RLE Compression", "Spiralize Matrix", "Algorithmic Stock Trader I", "Algorithmic Stock Trader II", "Merge Overlapping Intervals", "Array Jumping Game", , "Array Jumping Game II", "Encryption I: Caesar Cipher", "Subarray with Maximum Sum", "Total Ways to Sum", "Find Largest Prime Factor", "Minimum Path Sum in a Triangle", "Encryption II: Vigenère Cipher"];
   const allCC = ["Find Largest Prime Factor", "Subarray with Maximum Sum", "Total Ways to Sum", "Total Ways to Sum II", "Spiralize Matrix", "Array Jumping Game", "Array Jumping Game II", "Merge Overlapping Intervals", "Generate IP Addresses", "Algorithmic Stock Trader I", "Algorithmic Stock Trader II", "Algorithmic Stock Trader III", "Algorithmic Stock Trader IV", "Minimum Path Sum in a Triangle", "Unique Paths in a Grid I", "Unique Paths in a Grid II", "Shortest Path in a Grid", "Sanitize Parentheses in Expression", "Find All Valid Math Expressions", "HammingCodes: Integer to Encoded Binary", "HammingCodes: Encoded Binary to Integer", "Proper 2-Coloring of a Graph", "Compression I: RLE Compression", "Compression II: LZ Decompression", "Compression III: LZ Compression", "Encryption I: Caesar Cipher", "Encryption II: Vigenère Cipher"];
   const hosts = ns.read('hostNames.txt').split(',');
   const nSolved = `${solved.length}/${allCC.length}`;
@@ -66,6 +66,7 @@ export async function main(ns) {
           answer = uniquePathsInAGridII(cct.data);
           break;
         case "Shortest Path in a Grid":
+          answer = shortestPathInAGrid(cct.data);
           break;
         case "Sanitize Parentheses in Expression":
           break;
@@ -621,6 +622,131 @@ function generateIPAddresses(data = "") {
 }
 
 
+
+function shortestPathInAGrid(data = []) {
+  const startTime = Date.now();
+  const copy = JSON.parse(JSON.stringify(data));
+  const yEnd = copy.length - 1;
+  const xEnd = copy[0].length - 1;
+  let answer = '';
+  for (let i = 0, j = data.length; i < j; ++i) {
+    for (let k = 0, l = data[0].length; k < l; ++k) {
+      if (data[i][k] === 1) {
+        copy[i][k] = -1;
+      }
+    }
+  }
+
+  function fillNear(y, x) {
+    const val = copy[y][x];
+    const next = val + 1;
+    let right = -1;
+    try { right = copy[y][x + 1] } catch { right = -1 };
+    let down;
+    try { down = copy[y + 1][x] } catch { down = -1 };
+    let left;
+    try { left = copy[y][x - 1] } catch { left = -1 };
+    let up;
+    try { up = copy[y - 1][x] } catch { up = -1 };
+
+    if (right == 0) {
+      copy[y][x + 1] = next;
+    }
+
+    if (down == 0) {
+      copy[y + 1][x] = next;
+    }
+
+    if (left == 0) {
+      copy[y][x - 1] = next;
+    }
+
+    if (up == 0) {
+      copy[y - 1][x] = next;
+    }
+  }
+
+  fillNear(0, 0);
+
+  let cur = 1;
+  let count = 0;
+
+  while (copy[yEnd][xEnd] === 0) {
+    for (let y = 0; y < copy.length; ++y) {
+      for (let x = 0; x < copy[y].length; ++x) {
+        if (copy[y][x] == cur) {
+          fillNear(y, x);
+          ++count;
+        }
+      }
+    }
+    ++cur;
+    if (count === 0 && copy[yEnd][xEnd] === 0) {
+      return answer;
+    }
+    count = 0;
+    if (startTime + 5000 <= Date.now()) {
+      copy.push(answer, 'timeout');
+      return copy;
+    }
+  }
+
+  copy[0][0] = 0;
+  let y = yEnd;
+  let x = xEnd;
+  let val = copy[y][x];
+
+  while (val > 1) {
+    val = copy[y][x];
+    let right;
+    try { right = copy[y][x + 1] } catch { right = -1 };
+    let down;
+    try { down = copy[y + 1][x] } catch { down = -1 };
+    let left;
+    try { left = copy[y][x - 1] } catch { left = -1 };
+    let up;
+    try { up = copy[y - 1][x] } catch { up = -1 };
+
+
+    if (left === val - 1 && left < val) {
+      --x;
+      answer = 'R' + answer;
+      continue;
+    }
+
+    if (up === val - 1 && up < val) {
+      --y;
+      answer = 'D' + answer;
+      continue;
+    }
+
+    if (right === val - 1 && right < val) {
+      ++x;
+      answer = 'L' + answer;
+      continue;
+    }
+
+    if (down === val - 1 && down < val) {
+      ++y;
+      answer = 'U' + answer;
+      continue;
+    }
+
+    if (startTime + 5000 <= Date.now()) {
+      copy.push(answer, 'timeout');
+      return copy;
+    }
+  }
+  if (answer.length < copy[yEnd][xEnd]) {
+    copy.push(answer);
+    copy.push([y, x, val]);
+    answer = copy;
+  }
+  return answer;
+
+}
+
+
 function isPrime(num) {
   if (!Number.isInteger(num)) {
     return false;
@@ -640,6 +766,7 @@ function factorialize(num) {
     return (num * factorialize(num - 1));
   }
 }
+
 
 
 class CodingContract {
