@@ -205,3 +205,14 @@ export function calcRatios(ns, hThreads, player, server) {
 
   return { 'gThreads': gThreads, 'wThreadsH': wThreadsH, 'wThreadsG': wThreadsG };
 }
+
+/** Random number between and including min through max.
+ * @param {number} max - Maximum number to roll.
+ * @param {number} min - Minimum number to roll.
+ * @returns {number} result - Number chosen from min (inclusive) to max (inclusive).
+ */
+function die(max, min = 1) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
