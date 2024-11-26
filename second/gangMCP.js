@@ -15,18 +15,19 @@ export async function main(ns) {
   const traffickTask = taskList.find((entry) => entry.name === 'Human Trafficking');
   equipmentList.sort((a, b) => a.cost - b.cost);
 
+
   while (true) {
     const gangInfo = ns.gang.getGangInformation();
     if (gangNames.length < 12 && gangInfo.respect >= gangInfo.respectForNextRecruit) {
       gangNames = recruit(ns, gangNames, namePool);
-    } else if (gangInfo.respect < gangInfo.respectForNextRecruit && gangNames.length < 12) {
+    } else if (gangInfo.respect < gangInfo.respectForNextRecruit && gangNames.length < 11) {
       buyGear(ns, equipmentList, gangNames);
-      if (shouldWeRecruit(ns, gangInfo, gangNames, terrorismTask)) {
+      if (shouldWeRecruit(ns, gangInfo, gangNames, terrorismTask) || gangInfo.wantedPenalty >= 0.5) {
         canTerrorize(ns, gangInfo, gangNames, terrorismTask);
       }
     } else if (gangInfo.territory < 1 && !gangInfo.territoryWarfareEngaged) {
       buyGear(ns, equipmentList, gangNames, true);
-      if (buildGangPower(ns, gangInfo, gangNames, equipmentList, traffickTask)) {
+      if (buildGangPower(ns, gangInfo, gangNames, traffickTask)) {
         ns.gang.setTerritoryWarfare(true);
         for (const member of gangNames) {
           ns.gang.setMemberTask(member, 'Train Combat');
@@ -80,7 +81,7 @@ function canTerrorize(ns, gangInfo, gangNames, terrorismTask) {
     }
     let result;
     try { result = ns.gang.getAscensionResult(memberInfo.name).str } catch { return false };
-    if (result <= 1.64 - 0.62 / Math.exp((2 / memberInfo.str_asc_mult) ** 2.24)) {
+    if (result <= 1.63 - 0.62 / Math.exp((2 / memberInfo.str_asc_mult) ** 2.24)) {
       if (memberInfo.task !== 'Train Combat') {
         ns.gang.setMemberTask(memberInfo.name, 'Train Combat');
       }
@@ -93,7 +94,7 @@ function canTerrorize(ns, gangInfo, gangNames, terrorismTask) {
     gangInfoAfter.wantedLevel += wantedLevelAfter;
     const wantedPenaltyAfter = ns.formulas.gang.wantedPenalty(gangInfoAfter);
     //ns.print(wantedPenaltyAfter, ' >= ', gangInfo.wantedPenalty);
-    if (wantedPenaltyAfter > gangInfo.wantedPenalty) {
+    if (wantedPenaltyAfter > gangInfo.wantedPenalty || memberInfo.str >= 600) {
       //ns.print(wantedPenaltyAfter, ' - ', gangInfo.wantedPenalty);
       ns.gang.setMemberTask(memberInfo.name, 'Terrorism');
     } else {
@@ -125,7 +126,7 @@ function shouldWeRecruit(ns, gangInfo, gangNames, terrorismTask) {
     }
   }
   //ns.print(gangInfo.respectForNextRecruit, ' <= ', gangInfo.respect + respectPerTick * 600);
-  if (gangInfo.respectForNextRecruit <= gangInfo.respect + respectPerTick * 600) {
+  if (gangInfo.respectForNextRecruit <= gangInfo.respect + (respectPerTick * 1000)) {
     return true;
   } else {
     return false;
@@ -142,9 +143,9 @@ function bestMoneyTask(ns, gangInfo, memberInfo, traffickTask, atWar = false) {
     return false;
   }
   try { result = ns.gang.getAscensionResult(memberInfo.name).str } catch { return false };
-  //ns.print(result, ' <= ', 1.64 - 0.62 / Math.exp((2 / memberInfo.str_asc_mult) ** 2.24), ' && ', memberInfo.task, ' !== ', 'Train Combat');
+  //ns.print(result, ' <= ', 1.63 - 0.62 / Math.exp((2 / memberInfo.str_asc_mult) ** 2.24), ' && ', memberInfo.task, ' !== ', 'Train Combat');
   //ns.print(result, ' <= ', 1.66 - 0.62 / Math.exp((2 / memberInfo.str_asc_mult) ** 2.24), ' && ', memberInfo.task, ' !== ', 'Train Combat');
-  if (result <= 1.64 - 0.62 / Math.exp((2 / memberInfo.str_asc_mult) ** 2.24)) {
+  if (result <= 1.63 - 0.62 / Math.exp((2 / memberInfo.str_asc_mult) ** 2.24)) {
     if (memberInfo.task !== 'Train Combat') {
       ns.gang.setMemberTask(memberInfo.name, 'Train Combat');
     }
@@ -158,7 +159,7 @@ function bestMoneyTask(ns, gangInfo, memberInfo, traffickTask, atWar = false) {
   const wantedLevelAfter = ns.formulas.gang.wantedLevelGain(gangInfo, memberInfo, traffickTask);
   gangInfoAfter.wantedLevel += wantedLevelAfter;
   const wantedPenaltyAfter = ns.formulas.gang.wantedPenalty(gangInfoAfter);
-  if (wantedPenaltyAfter >= gangInfo.wantedPenalty) {
+  if (wantedPenaltyAfter >= gangInfo.wantedPenalty && moneyGainAfter > gangInfo.moneyGainRate) {
     ns.gang.setMemberTask(memberInfo.name, traffickTask.name);
     return true;
   }
@@ -190,7 +191,7 @@ function ascend(ns, gangNames) {
 /**
 * @param {NS} ns
 */
-function buildGangPower(ns, gangInfo, gangNames, equipmentList, traffickTask, atWar = false) {
+function buildGangPower(ns, gangInfo, gangNames, traffickTask, atWar = false) {
   let startWar = false;
   const rivalGangs = ns.gang.getOtherGangInformation();
   let maxGangPower = 0;
@@ -204,9 +205,9 @@ function buildGangPower(ns, gangInfo, gangNames, equipmentList, traffickTask, at
     //ns.print('buildgangpower');
     try { result = ns.gang.getAscensionResult(memberInfo.name).str } catch { continue };
     //ns.print(result, ' ', 1.60 - 0.62 / Math.exp((2 / memberInfo.str_asc_mult) ** 2.24));
-    if (result > 1.64 - 0.62 / Math.exp((2 / memberInfo.str_asc_mult) ** 2.24) && memberInfo.str_asc_mult >= 40) {
+    if (result > 1.63 - 0.62 / Math.exp((2 / memberInfo.str_asc_mult) ** 2.24) && memberInfo.str_asc_mult >= 25) {
       ns.gang.setMemberTask(memberInfo.name, 'Territory Warfare');
-    } else if (result > 1.64 - 0.62 / Math.exp((2 / memberInfo.str_asc_mult) ** 2.24)) {
+    } else if (result > 1.63 - 0.62 / Math.exp((2 / memberInfo.str_asc_mult) ** 2.24)) {
       bestMoneyTask(ns, gangInfo, memberInfo, traffickTask);
     } else if (memberInfo.task !== 'Train Combat') {
       ns.gang.setMemberTask(memberInfo.name, 'Train Combat');
@@ -247,21 +248,28 @@ function buyGear(ns, equipmentList, gangNames, atWar = false) {
         if (gearOwned.includes(gear.name)) {
           continue;
         }
-      ns.disableLog('gang.purchaseEquipment');
-      const purchased = ns.gang.purchaseEquipment(gangNames[member], gear.name);
-      ns.enableLog('gang.purchaseEquipment');
+      const cost = ns.gang.getEquipmentCost(gear.name);
+      const cash = ns.getPlayer().money;
+      let purchased = false;
+      if (cost <= cash * 0.1) {
+        ns.disableLog('gang.purchaseEquipment');
+        purchased = ns.gang.purchaseEquipment(gangNames[member], gear.name);
+        ns.enableLog('gang.purchaseEquipment');
+      }
       if (!purchased) {
         return false;
-        ns.print(`gang.purchaseEquipment: Purchased '${gear.name}' for Gang member '${gangNames[member]}'`);
       }
     }
   }
 }
-/** Random number between and including 0 through max.
+
+
+/** Random number between and including min through max.
  * @param {number} max - Maximum number to roll.
- * @returns {number} result - Number chosen from 0 to max.
- */
-function die(max) {
-  const result = Math.floor(Math.random() * max);
-  return result;
+ * @param {number} min - Minimum number to roll.
+ * @returns {number} result - Number chosen from min (inclusive) to max (inclusive). */
+function die(max, min = 1) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
